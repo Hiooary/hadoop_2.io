@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Hadoop学习系列(二) by Hiooary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Hadoop学习系列(二)</h1>
+      <h2 class="project-tagline">在Linux环境下搭建Hadoop伪分布式环境</h2>
+      <a href="https://github.com/Hiooary/hadoop_2.io" class="btn">View on GitHub</a>
+      <a href="https://github.com/Hiooary/hadoop_2.io/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/Hiooary/hadoop_2.io/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="1配置linux的环境为搭建hadoop做准备" class="anchor" href="#1%E9%85%8D%E7%BD%AElinux%E7%9A%84%E7%8E%AF%E5%A2%83%E4%B8%BA%E6%90%AD%E5%BB%BAhadoop%E5%81%9A%E5%87%86%E5%A4%87" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>1.配置Linux的环境，为搭建hadoop做准备</h1>
+
+<p>安装前准备软件：</p>
+
+<pre><code>              vitual/vox 或者 VMware10
+
+              rhel-server-6.3-i383-dvd.iso
+
+              jdk-6u24-linux-xxx.bin
+
+              hadoop-2.7.3.tar.gz
+</code></pre>
+
+<p>(这里搭建的是最新的版本，由于版本比较新，出现一些问题网上就找不到解决办法，但还是可以安装的)</p>
+
+<p>伪分布模式安装步骤：</p>
+
+<pre><code>              关闭防火墙 -&gt; 修改ip墙 -&gt; 修改hostname墙 -&gt; 设置ssh自动登录墙 -&gt; 安装jdk墙 -&gt; 安装hadoop
+</code></pre>
+
+<h1>
+<a id="2hadoop的伪分布安装" class="anchor" href="#2hadoop%E7%9A%84%E4%BC%AA%E5%88%86%E5%B8%83%E5%AE%89%E8%A3%85" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.hadoop的伪分布安装</h1>
+
+<h2>
+<a id="1设置静态ip" class="anchor" href="#1%E8%AE%BE%E7%BD%AE%E9%9D%99%E6%80%81ip" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>1.设置静态ip：</h2>
+
+<pre><code>步骤：在桌面右上角的图标上，右键修改 -&gt; 重启网卡,执行命令 service network restart -&gt; 验证：执行 ifconfig 查看 ip 是否生效
+
+具体操作：
+
+     (1) root用户登陆，拥有所有权限。进入界面，点击右上角的网络连接图标，右键选择网络编辑
+
+    （2）选择 System eth0， 点击 编辑(Edit)，跳出的界面上面俩个选项勾上；设置IPv4：Method 选择静态 ip(Manual) Address：ip (在自己的网段里给)，例如 192.168.80.100， 子网掩码：255.255.255.0  网关 (windows下的那个虚拟 IPv4ip, 用 ipconfig 在 cmd 里面查看)，例如 192.168.80.1；点应用；关闭  
+
+    （3）查看是否成功：开启终端，输入命令 service network restart 使刚才的设置立即生效（应该显示4个ok,如果最后一个不ok,则delete掉System eth0，再 Add 进去，然后按照步骤重新设置）；ifconfig 看看网络设置是否设置成功；查看是否与 windows 在同一个网段中：ping 192.168.80.1 查看是否能ping通，有包就通，在windows的cmd里面，ping 192.168.80.100 是否也通  
+</code></pre>
+
+<h2>
+<a id="2修改主机名" class="anchor" href="#2%E4%BF%AE%E6%94%B9%E4%B8%BB%E6%9C%BA%E5%90%8D" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.修改主机名：</h2>
+
+<pre><code>修改原因：类似域名，好记，主机名比ip稳定
+
+步骤：修改当前会话中的主机名 -&gt; 修改配置文件中的主机名 -&gt; 把hostname和ip绑定
+
+具体操作：
+
+    (1)用工具  pieTTY 登陆，比在命令行下方便(直接用终端也是可以的)
+
+    (2)hostname 查看主机名
+
+    (3)hostname xxx 改变主机名(这里改为了 jxy )
+
+    (4)验证：查看 hostname是否生效，但是只对当前会话有效，所以需要改配置文件使之永久生效
+
+    (5)输入命令 vi /etc/sysconfig/network  将hostname改掉，一劳永逸
+
+    (6)重启机器，查看是否生效： 输入命令 reboot -h now
+
+    (7)ping 主机名(此时不通)，所以要把主机名(相当于域名)和ip绑定：输入命令 vi /etc/hosts，增加一行 192.168.80.100 xxx(hostname)，再 ping xxx 一下  
+</code></pre>
+
+<h2>
+<a id="3关闭防火墙" class="anchor" href="#3%E5%85%B3%E9%97%AD%E9%98%B2%E7%81%AB%E5%A2%99" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3.关闭防火墙</h2>
+
+<pre><code>步骤：
+
+    (1)不关闭防火墙的时候：输入命令 service iptables status (可以看到很多输出)
+
+    (2)关闭：输入命令 service iptables stop (可以看到三个ok)
+
+    (3)验证：输入命令 service iptables status (此时没有输出)
+
+    (4)关闭防火墙的自动运行:防火墙有可能自动开启，判断是否有自动重启的功能：输入命令 chkconfig --list (列出所有的服务，如果有on，意味着到了某一级别就会自动启动)  
+
+    (5)过滤服务：输入命令 chkconfig --list | grep iptables ,如果有on，就需要关闭：输入命令  chkconfig iptables off  
+
+    (6)查看是否关闭：输入命令 chkconfig --list | grep iptables (都显示 off 则搞定)  
+</code></pre>
+
+<h2>
+<a id="4使用ssh进行免密码登陆" class="anchor" href="#4%E4%BD%BF%E7%94%A8ssh%E8%BF%9B%E8%A1%8C%E5%85%8D%E5%AF%86%E7%A0%81%E7%99%BB%E9%99%86" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.使用SSH进行免密码登陆</h2>
+
+<pre><code>步骤：
+
+    (1)输入命令 cd ~/.ssh 位于~/.ssh文件夹下，输入命令 ssh-keygen -t rsa 产生秘钥 (rsa为加密算法)
+
+    (2)ls  (会发现密钥文件)
+
+    (3)把公钥放入 authorized_keys 文件：cp ~/.ssh/id-rsa.pub ~/.ssh/authorized_keys
+
+    (4)ls (显示三个文件)
+
+    (5)验证：输入命令 ssh localhost (显示登陆进去)
+
+    (6)输入命令 exit (退出终端)
+</code></pre>
+
+<p>注意:以上操作均使用root用户登录，不是su root,俩者有差别的</p>
+
+<p>在ubuntu里以root用户登录操作</p>
+
+<h2>
+<a id="5安装jdk" class="anchor" href="#5%E5%AE%89%E8%A3%85jdk" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>5.安装JDK</h2>
+
+<pre><code>步骤：使用 winscp 把 jdk 文件从windows复制到 /usr/local/ 下，解压 -&gt; 修改配置文件
+
+具体操作：
+
+    (1)将 jdk-6u24-linux-xxx.bin，hadoop-2.7.3.tar.gz 放到 /root/Downloads/ 下
+
+    (2)复制到 /usr/local/ 下：输入命令 cd /usr/local/ ；输入命令 rm -rf * (强制递归删除全部有的文件)；输入命令 cp /root/Downloads/* . （拷贝到当前目录下)  
+
+    (3)输入命令 chmod u+x jdk-6u24-linux-xxx.bin (增加执行权限)
+
+    (4) /usr/local/ 目录下解压： ./jdk-6u24-linux-xxx.bin
+
+    (5)可以重命名加压后的 jdk... 文件：mv jdk... jdk
+
+    (6)配置环境文件：输入命令 vi /etc/profile
+
+    (7)增加 export JAVA_HOME=/usr/local/jdk (刚刚的安装目录) 
+
+            export PATH=.:$JAVA_HOME/bin:$PATH 
+
+            保存退出，让改动立即生效：输入命令 source /etc/profile
+
+    (8)验证：输入命令 java -version (出现java版本则成功）
+</code></pre>
+
+<h2>
+<a id="6安装hadoop" class="anchor" href="#6%E5%AE%89%E8%A3%85hadoop" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>6.安装hadoop</h2>
+
+<pre><code>具体操作：
+    (1)在 /usr/local目录下解压 hadoop-2.7.3.tar.gz ：输入命令 tar -zxvf hadoop-2.7.3.tar.gz ，得到文件 hadoop-2.7.3  
+
+    (2)重命名：输入命令 mv hadoop-2.7.3.tar.gz hadoop
+
+    (3)输入命令 vi /etc/profile ，增加一行 export HADOOP_HOME=/usr/local/hadoop 
+
+        修改 export PATH=.:$JAVA_HOME/bin:$PATH  为 export PATH=.:$HADOOP_HOME/bin:$JAVA_HOME/bin:$PATH ，保存退出，输入 source /etc/profile  
+
+    (4)修改配置文件，使适应伪分布，修改位于 $HADOOP_HOME/conf 目录下的 hadoop-env.sh、core-site.xml、hdfs-site.xml、mapred-site.xml 文件，具体如下：
+
+    `$: vi hadoop-env.sh`
+
+    `export JAVA_HOME=/usr/local/jdk`
+
+    $: vi core-site.xml
+
+    &lt;configuration&gt;
+
+         &lt;property&gt;
+
+       &lt;name&gt;fs.defualt.name&lt;/name&gt;
+
+       &lt;value&gt;hdfs://hadoop0:9000&lt;/value&gt;
+
+       &lt;description&gt;change your own hostname&lt;/description&gt;
+
+     &lt;/property&gt;
+
+     &lt;property&gt;
+
+       &lt;name&gt;hadoop.tmp.dir&lt;/name&gt;
+
+       &lt;value&gt;/usr/local/hadoop/tmp&lt;/value&gt;
+
+     &lt;/property&gt;
+
+    &lt;/configuration&gt;
+
+    $: vi hdfs-site.xml
+
+    &lt;configuration&gt;
+
+      &lt;property&gt;
+
+       &lt;name&gt;dfs.replication&lt;/name&gt;
+
+       &lt;value&gt;1&lt;/value&gt;
+
+      &lt;/property&gt;
+
+      &lt;property&gt;
+
+       &lt;name&gt;dfs.permissions&lt;/name&gt;
+
+       &lt;value&gt;false&lt;/value&gt;
+
+      &lt;/property&gt;
+
+    &lt;/configuration&gt;
+
+
+    $: vi mapred-site.xml
+
+    &lt;configuration&gt;
+
+     &lt;property&gt;
+
+      &lt;name&gt;mapred.job.tracker&lt;/name&gt;
+
+      &lt;value&gt;hadoop0:9001&lt;/value&gt;
+
+      &lt;description&gt;change your own hostname&lt;/description&gt;
+
+     &lt;/property&gt;
+
+        &lt;/configuration&gt;
+
+(注意：hadoop0 改为自己的真实主机名）
+
+    (5)对 hadoop 进行格式化：输入命令 hadoop namenode -format
+
+    (6)启动：输入命令 start -all.sh (该有5个starting)
+
+    (7)验证：用 jps 查看java进程 (应该有5个：JobTracker、SecondaryNameNode、DataNode、TaskTracker、Jps、NameNode ；或者：打开火狐浏览器，访问 hadoop：50070 ，能看到 NameNode，说明 NameNode 这个进程活着，在端口 50030 也能看到JobTracker
+
+    (8)在 windows 的浏览器里输入 hadoop 是无法打开的，因为主机名和ip没有绑定：进入 C:\Windows\System32\driver\etc 下的 hosts 文件，增加 192.168.80.100 hadoop, 在 windows 下就能访问了，如果还是无法访问，有可能网络是不通的，那么 ping 一下)  
+</code></pre>
+
+<h2>
+<a id="ps安装不成功的常见原因" class="anchor" href="#ps%E5%AE%89%E8%A3%85%E4%B8%8D%E6%88%90%E5%8A%9F%E7%9A%84%E5%B8%B8%E8%A7%81%E5%8E%9F%E5%9B%A0" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PS：安装不成功的常见原因：</h2>
+
+<pre><code>(1)NameNode进程没有启动成功：可能没有格式化；配置文件只是copy，没有修改成自己的实际情况；hostname与ip没有绑定；ssh的免密码登陆没有配置成功
+
+(2)多次格式化hadoop也会出错(多个版本不兼容)：方法删除 /usr/local/hadoop/tmp 文件夹，重新格式化
+</code></pre>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/Hiooary/hadoop_2.io">Hadoop学习系列(二)</a> is maintained by <a href="https://github.com/Hiooary">Hiooary</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
